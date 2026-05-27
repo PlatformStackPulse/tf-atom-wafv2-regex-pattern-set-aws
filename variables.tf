@@ -1,7 +1,24 @@
 # -----------------------------------------------------------------------------
 # Module-Specific Variables
-#
-# Note: Standard labeling variables (enabled, namespace, tenant, environment,
-# stage, name, delimiter, attributes, tags, label_order, etc.) are provided
-# by context.tf via the tf-label module.
 # -----------------------------------------------------------------------------
+
+variable "scope" {
+  type        = string
+  description = "Scope of the regex pattern set. Valid values: REGIONAL, CLOUDFRONT."
+  validation {
+    condition     = contains(["REGIONAL", "CLOUDFRONT"], var.scope)
+    error_message = "Scope must be REGIONAL or CLOUDFRONT."
+  }
+}
+
+variable "description" {
+  type        = string
+  description = "Description of the regex pattern set."
+  default     = ""
+}
+
+variable "regular_expressions" {
+  type        = list(string)
+  description = "List of regex patterns."
+  default     = []
+}
