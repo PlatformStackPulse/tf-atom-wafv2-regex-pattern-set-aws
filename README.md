@@ -1,30 +1,58 @@
-# Terraform Module Template
+# tf-atom-wafv2-regex-pattern-set-aws
 
 <!-- Badges: Update REPO_OWNER/REPO_NAME after creating from template -->
-[![CI](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-[![Release](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/auto-release.yml/badge.svg)](../../actions/workflows/auto-release.yml)
-[![CodeQL](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/codeql.yml/badge.svg)](../../actions/workflows/codeql.yml)
-[![Changelog](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/changelog.yml/badge.svg)](../../actions/workflows/changelog.yml)
-![Latest Release](https://img.shields.io/github/v/release/PlatformStackPulse/terraform-atom-molecule-module-template?label=latest%20release&sort=semver)
+[![CI](https://github.com/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Release](https://github.com/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws/actions/workflows/auto-release.yml/badge.svg)](../../actions/workflows/auto-release.yml)
+[![CodeQL](https://github.com/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws/actions/workflows/codeql.yml/badge.svg)](../../actions/workflows/codeql.yml)
+[![Changelog](https://github.com/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws/actions/workflows/changelog.yml/badge.svg)](../../actions/workflows/changelog.yml)
+![Latest Release](https://img.shields.io/github/v/release/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws?label=latest%20release&sort=semver)
 ![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.6.0-blue?logo=terraform)
-![License](https://img.shields.io/github/license/PlatformStackPulse/terraform-atom-molecule-module-template)
+![License](https://img.shields.io/github/license/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws)
 
-A production-ready template for creating Terraform modules following the **one module per repository** best practice, with built-in CI/CD, security scanning, testing, documentation generation, and publishing to public registries.
+Terraform atom module that provisions a single **AWS WAFv2 Regex Pattern Set** (`aws_wafv2_regex_pattern_set`) with consistent [tf-label](https://github.com/PlatformStackPulse/tf-label) naming and tagging. A regex pattern set holds a reusable list of regular expressions that WAFv2 rule statements (`RegexPatternSetReferenceStatement`) can match request components against.
 
 ## Features
 
-- **One Module Per Repo** — Module lives at the root; no nested `modules/` directory
-- **Registry Publishing** — Auto-publish to Terraform Registry, Artifactory, or GitLab on release
-- **Native Terraform Testing** — `terraform test` with mock providers (no external tools)
+- **WAFv2 regex pattern set** — Creates one `aws_wafv2_regex_pattern_set` with a dynamic list of `regular_expression` blocks
+- **Regional & CloudFront scopes** — `scope` is validated to be `REGIONAL` or `CLOUDFRONT`
+- **tf-label naming & tagging** — Name is derived from the tf-label `id`; tags are merged from the label context
+- **Toggleable** — `enabled = false` provisions zero resources (count-based), enabling conditional composition
+- **Optional description** — Free-form `description` attached to the pattern set
+- **Native Terraform testing** — `terraform test` unit suite with a mock AWS provider (no AWS calls)
 - **Security Scanning** — Trivy IaC scanning for HIGH/CRITICAL vulnerabilities
 - **Linting** — TFLint with AWS ruleset (preset "all")
-- **Auto Documentation** — terraform-docs generates README sections on every commit
-- **GitHub Actions CI/CD** — Workflows for the full module lifecycle
-- **Auto Release** — CI passes on main → auto-tag → GitHub Release created
-- **Pre-Commit Hooks** — Format, validate, lint, docs, and security on every commit
-- **Conventional Commits** — Enforced commit message format
+- **Auto Documentation** — terraform-docs keeps the docs block below in sync
 - **Semantic Versioning** — Automated version management and releases
-- **DevContainer** — VS Code remote development ready
+
+## Usage
+
+```hcl
+module "regex_pattern_set" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-wafv2-regex-pattern-set-aws.git?ref=v1.0.0"
+
+  # tf-label naming context
+  namespace = "eg"
+  stage     = "prod"
+  name      = "blocklist"
+
+  # Regex pattern set configuration
+  scope       = "REGIONAL" # or "CLOUDFRONT"
+  description = "Blocked request paths and patterns"
+
+  regular_expressions = [
+    "^/admin",
+    "\\.php$",
+    "(?i)union.*select",
+  ]
+
+  tags = {
+    Project = "example"
+    Owner   = "platform-engineering"
+  }
+}
+```
+
+Reference the resulting pattern set from a WAFv2 rule via `module.regex_pattern_set.arn`.
 
 ## CI Pipeline
 
@@ -321,6 +349,34 @@ Installed via `make hooks`. Runs on every commit:
 | <a name="output_enabled"></a> [enabled](#output\_enabled) | Whether the module is enabled. |
 | <a name="output_id"></a> [id](#output\_id) | The ID of the regex pattern set. |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+This module ships a native `terraform test` unit suite (mock AWS provider — no AWS
+credentials or API calls required).
+
+```bash
+terraform init -backend=false
+terraform test -test-directory=tests/unit            # unit tests (mock provider)
+terraform test -test-directory=tests/integration     # integration tests (real AWS)
+```
+
+Or via the Makefile:
+
+```bash
+make test-unit          # unit tests only
+make test-integration   # integration tests (requires AWS credentials)
+make test               # all tests
+```
+
+Unit coverage (`tests/unit/main_test.tftest.hcl`):
+
+- `creates_when_enabled` — asserts one pattern set is planned, the resource name equals the
+  tf-label id (`eg-test-thing`), and `scope` passes through.
+- `disabled_creates_nothing` — with `enabled = false`, asserts zero resources are planned and
+  the `id` output is empty.
+
+All assertions target plan-known values, so the suite runs without a real provider.
 
 ## Learning Materials
 
